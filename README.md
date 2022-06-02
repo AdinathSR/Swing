@@ -4,7 +4,7 @@
 
 * ***it is a toy programing language again made by ME***
 -----------------------
-* ***It is not meant for commertial use only made
+* ***It is not meant for commertial use. Only made
  for learning purpose. you all can also use this for learning fundamentals of programing***
 
 -----------------------
