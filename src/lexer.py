@@ -1,20 +1,30 @@
-from telnetlib import SE
+from logging.config import IDENTIFIER
+import string
 from .errors import Error, IllegalCharError
 from .tokens import Token
 from .Parser import Parser
 from .position import Position
 
+LETTERS = string.ascii_letters
 DIGITS = '0123456789'
+LETTERS_DIGITS = LETTERS + DIGITS
 TT_INT		= 'INT'
 TT_FLOAT    = 'FLOAT'
+TT_IDENTIFIER = 'IDENTIFIER'
+TT_KEYWORD = 'KEYWORD'
 TT_PLUS     = 'PLUS'
 TT_MINUS    = 'MINUS'
 TT_MUL      = 'MUL'
 TT_DIV      = 'DIV'
+TT_EQ       = 'EQ'
 TT_LPAREN   = 'LPAREN'
 TT_RPAREN   = 'RPAREN'
 TT_EOF      = 'EOF'
 
+KEYWORDS = [
+    'var'
+    
+]
 
 class Lexer:
     def __init__(self, text, fn):
@@ -38,6 +48,9 @@ class Lexer:
             elif self.currentChar == '+':
                 tokens.append(Token(TT_PLUS, pos_start=self.pos))
                 self.advance()
+            elif self.currentChar in LETTERS:
+                tokens.append(self.mkIdentifier())
+                self.advance()
             elif self.currentChar == '-':
                 tokens.append(Token(TT_MINUS, pos_start=self.pos))
                 self.advance()
@@ -46,6 +59,9 @@ class Lexer:
                 self.advance()
             elif self.currentChar == '*':
                 tokens.append(Token(TT_MUL, pos_start=self.pos))
+                self.advance()
+            elif self.currentChar == '=':
+                tokens.append(Token(TT_EQ, pos_start=self.pos))
                 self.advance()
             elif self.currentChar == '(':
                 tokens.append(Token(TT_LPAREN, pos_start=self.pos))
@@ -75,6 +91,18 @@ class Lexer:
             return Token(TT_INT, int(num_str))
         else:
             return Token(TT_FLOAT, float(num_str))
+    
+    def mkIdentifier(self):
+        idstr = ''
+        posStart = self.pos.copy()
+        tokType = None
+        while self.currentChar != None and self.currentChar in LETTERS_DIGITS + '_':
+            idstr += self.currentChar
+            self.advance()
+            
+        tokType = TT_KEYWORD if idstr in KEYWORDS else TT_IDENTIFIER
+        return Token(tokType, idstr, posStart, self.pos)
+        
     
 
 

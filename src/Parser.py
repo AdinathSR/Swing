@@ -1,16 +1,19 @@
 from .errors import *
 from .tokens import Token
 
-DIGITS = '0123456789'
-TT_INT		= 'INT'
-TT_FLOAT    = 'FLOAT'
-TT_PLUS     = 'PLUS'
-TT_MINUS    = 'MINUS'
-TT_MUL      = 'MUL'
-TT_DIV      = 'DIV'
-TT_LPAREN   = 'LPAREN'
-TT_RPAREN   = 'RPAREN'
-TT_EOF      = 'EOF'
+DIGITS 			= '0123456789'
+TT_INT			= 'INT'
+TT_FLOAT   		= 'FLOAT'
+TT_IDENTIFIER 	= 'IDENTIFIER'
+TT_KEYWORD		= 'KEYWORD'
+TT_PLUS     	= 'PLUS'
+TT_MINUS    	= 'MINUS'
+TT_MUL      	= 'MUL'
+TT_DIV      	= 'DIV'
+TT_EQ			= 'EQ'
+TT_LPAREN   	= 'LPAREN'
+TT_RPAREN   	= 'RPAREN'
+TT_EOF      	= 'EOF'
 
 class Number:
 	def __init__(self, value):
@@ -62,6 +65,21 @@ class NumberNode:
 
 	def __repr__(self):
 		return f'{self.tok}'
+
+class VarAccessNode:
+    def __init__(self, varNameTok):
+        self.var_name_tok = varNameTok
+        
+        self.pos_start = self.var_name_tok
+        self.pos_end = self.var_name_tok.pos_end
+
+class VarAssignNode:
+    def __init__(self, varNameTok, valueNode):
+        self.var_name_tok = varNameTok
+        self.value_node = valueNode
+        
+        self.pos_start = self.var_name_tok.pos_start
+        self.pos_end = self.value_node.pos_end
 
 class BinOpNode:
 	def __init__(self, left_node, op_tok, right_node):
@@ -146,6 +164,10 @@ class Parser:
 			factor = res.register(self.factor())
 			if res.error: return res
 			return res.success(UnaryOpNode(tok, factor))
+
+		elif tok.type == TT_IDENTIFIER:
+			res.register(self.advance())
+			return res.success(VarAccessNode(tok))
 		
 		elif tok.type in (TT_INT, TT_FLOAT):
 			res.register(self.advance())
@@ -173,6 +195,22 @@ class Parser:
 		return self.bin_op(self.factor, (TT_MUL, TT_DIV))
 
 	def expr(self):
+		res = ParseResult()
+		if self.current_tok.matches(TT_KEYWORD, 'var'):
+			res.register(self.advance())
+			if self.current_tok.type != TT_IDENTIFIER:
+				return res.failure(InvalidSyntaxError(self.current_tok.pos_start, self.current_tok.pos_end, 'Expected Identifier'))
+			varName = self.current_tok
+			res.register(self.advance())
+			
+			if self.current_tok.type != TT_EQ:
+				res.failure(InvalidSyntaxError(self.current_tok.pos_start, self.current_tok.pos_end, 'Expected \'  = \''))
+    
+			res.register(self.advance())
+			expr = res.register(self.expr())
+			if res.error: return res
+			return res.success(VarAssignNode(varName, expr))
+			
 		return self.bin_op(self.term, (TT_PLUS, TT_MINUS))
 
 	###################################
