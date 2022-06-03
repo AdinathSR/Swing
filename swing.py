@@ -1,10 +1,10 @@
 import src
-from src.Parser import Number
+
 
 globalSymbolTable = src.SymbolTable()
-globalSymbolTable.set("null", Number(0))
-globalSymbolTable.set("sach", Number(1))
-globalSymbolTable.set("jhut", Number(0))
+globalSymbolTable.set("null", src.Number(0))
+globalSymbolTable.set("sach", src.Number(1))
+globalSymbolTable.set("jhut", src.Number(0))
 
 def run():
     inp = input('>>>')

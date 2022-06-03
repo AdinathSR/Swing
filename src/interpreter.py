@@ -51,7 +51,7 @@ class Interpreter:
 	def visit_VarAccessNode(self, node, context):
 		res = RTResult()
 		var_name = node.var_name_tok.value
-		value = context.symbol_table.get(var_name)
+		value = context.symbolTable.get(var_name)
 
 		if not value:
 			return res.failure(RTError(
@@ -69,7 +69,7 @@ class Interpreter:
 		value = res.register(self.visit(node.value_node, context))
 		if res.error: return res
 
-		context.symbol_table.set(var_name, value)
+		context.symbolTable.set(var_name, value)
 		return res.success(value)
 
 	def visit_BinOpNode(self, node, context):
@@ -99,9 +99,9 @@ class Interpreter:
 			result, error = left.get_comparison_lte(right)
 		elif node.op_tok.type == TT_GTE:
 			result, error = left.get_comparison_gte(right)
-		elif node.op_tok.matches(TT_KEYWORD, 'AND'):
+		elif node.op_tok.matches(TT_KEYWORD, 'aur'):
 			result, error = left.anded_by(right)
-		elif node.op_tok.matches(TT_KEYWORD, 'OR'):
+		elif node.op_tok.matches(TT_KEYWORD, 'ya'):
 			result, error = left.ored_by(right)
 
 		if error:

@@ -104,6 +104,11 @@ class Number:
 	def notted(self):
 		return Number(1 if self.value == 0 else 0).set_context(self.context), None
 
+	def copy(self):
+		copy = Number(self.value)
+		copy.set_pos(self.pos_start, self.pos_end)
+		copy.set_context(self.context)
+		return copy
 
 	def __repr__(self):
 		return str(self.value)
@@ -252,7 +257,7 @@ class Parser:
 	def comp_expr(self):
 		res = ParseResult()
 
-		if self.current_tok.matches(TT_KEYWORD, 'NOT'):
+		if self.current_tok.matches(TT_KEYWORD, 'na'):
 			op_tok = self.current_tok
 			res.register(self.advance())
 
@@ -273,7 +278,7 @@ class Parser:
 	def expr(self):
 		res = ParseResult()
 
-		if self.current_tok.matches(TT_KEYWORD, 'VAR'):
+		if self.current_tok.matches(TT_KEYWORD, 'yehai'):
 			res.register(self.advance())
 
 			if self.current_tok.type != TT_IDENTIFIER:
@@ -296,7 +301,7 @@ class Parser:
 			if res.error: return res
 			return res.success(VarAssignNode(var_name, expr))
 
-		node = res.register(self.bin_op(self.comp_expr, ((TT_KEYWORD, 'AND'), (TT_KEYWORD, 'OR'))))
+		node = res.register(self.bin_op(self.comp_expr, ((TT_KEYWORD, 'aur'), (TT_KEYWORD, 'ya'))))
 
 		if res.error:
 			return res.failure(InvalidSyntaxError(
