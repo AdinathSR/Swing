@@ -1,19 +1,35 @@
 from .errors import *
+import string
 from .tokens import Token
 
-DIGITS 			= '0123456789'
-TT_INT			= 'INT'
-TT_FLOAT   		= 'FLOAT'
-TT_IDENTIFIER 	= 'IDENTIFIER'
-TT_KEYWORD		= 'KEYWORD'
-TT_PLUS     	= 'PLUS'
-TT_MINUS    	= 'MINUS'
-TT_MUL      	= 'MUL'
-TT_DIV      	= 'DIV'
-TT_EQ			= 'EQ'
-TT_LPAREN   	= 'LPAREN'
-TT_RPAREN   	= 'RPAREN'
-TT_EOF      	= 'EOF'
+LETTERS = string.ascii_letters
+DIGITS = '0123456789'
+LETTERS_DIGITS = LETTERS + DIGITS
+TT_INT		= 'INT'
+TT_FLOAT    = 'FLOAT'
+TT_IDENTIFIER = 'IDENTIFIER'
+TT_KEYWORD = 'KEYWORD'
+TT_PLUS     = 'PLUS'
+TT_MINUS    = 'MINUS'
+TT_MUL      = 'MUL'
+TT_DIV      = 'DIV'
+TT_EQ       = 'EQ'
+TT_EE       = 'EE'
+TT_NE       = 'NE'
+TT_GT       = 'GT'
+TT_LT       = 'LT'
+TT_GTE      = 'GTE'
+TT_LTE      = 'LTE'
+TT_LPAREN   = 'LPAREN'
+TT_RPAREN   = 'RPAREN'
+TT_EOF      = 'EOF'
+
+KEYWORDS = [
+    'yehai',
+    'aur',
+    'ya',
+    'na'
+]
 
 class Number:
 	def __init__(self, value):
@@ -52,6 +68,42 @@ class Number:
 				)
 
 			return Number(self.value / other.value).set_context(self.context), None
+
+	def get_comparison_eq(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value == other.value)).set_context(self.context), None
+
+	def get_comparison_ne(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value != other.value)).set_context(self.context), None
+
+	def get_comparison_lt(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value < other.value)).set_context(self.context), None
+
+	def get_comparison_gt(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value > other.value)).set_context(self.context), None
+
+	def get_comparison_lte(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value <= other.value)).set_context(self.context), None
+
+	def get_comparison_gte(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value >= other.value)).set_context(self.context), None
+
+	def anded_by(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value and other.value)).set_context(self.context), None
+
+	def ored_by(self, other):
+		if isinstance(other, Number):
+			return Number(int(self.value or other.value)).set_context(self.context), None
+
+	def notted(self):
+		return Number(1 if self.value == 0 else 0).set_context(self.context), None
+
 
 	def __repr__(self):
 		return str(self.value)
@@ -188,42 +240,86 @@ class Parser:
 
 		return res.failure(InvalidSyntaxError(
 			tok.pos_start, tok.pos_end,
-			"Expected int or float"
+			"Expected int, float, identifier, '+', etc"
 		))
 
 	def term(self):
 		return self.bin_op(self.factor, (TT_MUL, TT_DIV))
 
+	def arith_expr(self):
+		return self.bin_op(self.term, (TT_PLUS, TT_MINUS))
+
+	def comp_expr(self):
+		res = ParseResult()
+
+		if self.current_tok.matches(TT_KEYWORD, 'NOT'):
+			op_tok = self.current_tok
+			res.register(self.advance())
+
+			node = res.register(self.comp_expr())
+			if res.error: return res
+			return res.success(UnaryOpNode(op_tok, node))
+		
+		node = res.register(self.bin_op(self.arith_expr, (TT_EE, TT_NE, TT_LT, TT_GT, TT_LTE, TT_GTE)))
+		
+		if res.error:
+			return res.failure(InvalidSyntaxError(
+				self.current_tok.pos_start, self.current_tok.pos_end,
+				"Expected int, float, identifier, '+', '-', '(' or 'NOT'"
+			))
+
+		return res.success(node)
+
 	def expr(self):
 		res = ParseResult()
-		if self.current_tok.matches(TT_KEYWORD, 'var'):
+
+		if self.current_tok.matches(TT_KEYWORD, 'VAR'):
 			res.register(self.advance())
+
 			if self.current_tok.type != TT_IDENTIFIER:
-				return res.failure(InvalidSyntaxError(self.current_tok.pos_start, self.current_tok.pos_end, 'Expected Identifier'))
-			varName = self.current_tok
+				return res.failure(InvalidSyntaxError(
+					self.current_tok.pos_start, self.current_tok.pos_end,
+					"Expected identifier"
+				))
+
+			var_name = self.current_tok
 			res.register(self.advance())
-			
+
 			if self.current_tok.type != TT_EQ:
-				res.failure(InvalidSyntaxError(self.current_tok.pos_start, self.current_tok.pos_end, 'Expected \'  = \''))
-    
+				return res.failure(InvalidSyntaxError(
+					self.current_tok.pos_start, self.current_tok.pos_end,
+					"Expected '='"
+				))
+
 			res.register(self.advance())
 			expr = res.register(self.expr())
 			if res.error: return res
-			return res.success(VarAssignNode(varName, expr))
-			
-		return self.bin_op(self.term, (TT_PLUS, TT_MINUS))
+			return res.success(VarAssignNode(var_name, expr))
+
+		node = res.register(self.bin_op(self.comp_expr, ((TT_KEYWORD, 'AND'), (TT_KEYWORD, 'OR'))))
+
+		if res.error:
+			return res.failure(InvalidSyntaxError(
+				self.current_tok.pos_start, self.current_tok.pos_end,
+				"Expected 'VAR', int, float, identifier, '+', '-', '(' or 'NOT'"
+			))
+
+		return res.success(node)
 
 	###################################
 
-	def bin_op(self, func, ops):
+	def bin_op(self, func_a, ops, func_b=None):
+		if func_b == None:
+			func_b = func_a
+		
 		res = ParseResult()
-		left = res.register(func())
+		left = res.register(func_a())
 		if res.error: return res
 
-		while self.current_tok.type in ops:
+		while self.current_tok.type in ops or (self.current_tok.type, self.current_tok.value) in ops:
 			op_tok = self.current_tok
 			res.register(self.advance())
-			right = res.register(func())
+			right = res.register(func_b())
 			if res.error: return res
 			left = BinOpNode(left, op_tok, right)
 

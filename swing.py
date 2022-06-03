@@ -3,15 +3,17 @@ from src.Parser import Number
 
 globalSymbolTable = src.SymbolTable()
 globalSymbolTable.set("null", Number(0))
+globalSymbolTable.set("sach", Number(1))
+globalSymbolTable.set("jhut", Number(0))
 
 def run():
     inp = input('>>>')
     lexer = src.Lexer(inp, '<stdin>')
     tok, error = lexer.getTokens()
     if error:
-        
         print(error.asStr())
         return
+    # print(tok)
 
     parser = src.Parser(tok)
     ast = parser.parse()

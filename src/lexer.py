@@ -1,6 +1,6 @@
-from logging.config import IDENTIFIER
+
 import string
-from .errors import Error, IllegalCharError
+from .errors import *
 from .tokens import Token
 from .Parser import Parser
 from .position import Position
@@ -17,13 +17,21 @@ TT_MINUS    = 'MINUS'
 TT_MUL      = 'MUL'
 TT_DIV      = 'DIV'
 TT_EQ       = 'EQ'
+TT_EE       = 'EE'
+TT_NE       = 'NE'
+TT_GT       = 'GT'
+TT_LT       = 'LT'
+TT_GTE      = 'GTE'
+TT_LTE      = 'LTE'
 TT_LPAREN   = 'LPAREN'
 TT_RPAREN   = 'RPAREN'
 TT_EOF      = 'EOF'
 
 KEYWORDS = [
-    'var'
-    
+    'yehai',
+    'aur',
+    'ya',
+    'na'
 ]
 
 class Lexer:
@@ -61,7 +69,17 @@ class Lexer:
                 tokens.append(Token(TT_MUL, pos_start=self.pos))
                 self.advance()
             elif self.currentChar == '=':
-                tokens.append(Token(TT_EQ, pos_start=self.pos))
+                tokens.append(self.mkEquals())
+                self.advance()
+            elif self.currentChar == '!':
+                tok, error = self.mkNotEquals()
+                if error: return [], error
+                tokens.append(tok)
+            elif self.currentChar == '>':
+                tokens.append(self.mkGreaterThan())
+                self.advance()
+            elif self.currentChar == '<':
+                tokens.append(self.mkLessThan())
                 self.advance()
             elif self.currentChar == '(':
                 tokens.append(Token(TT_LPAREN, pos_start=self.pos))
@@ -102,8 +120,47 @@ class Lexer:
             
         tokType = TT_KEYWORD if idstr in KEYWORDS else TT_IDENTIFIER
         return Token(tokType, idstr, posStart, self.pos)
-        
     
+    def mkNotEquals(self):
+        pos_start = self.pos.copy()
+        self.advance()
+        
+        if self.currentChar == '=':
+            self.advance()
+            return Token(TT_NE, pos_start=pos_start, pos_end=self.pos), None
 
-
+        self.advance()
+        return None, ExpectedCharError('expected \'=\'', pos_start, self.pos)
+    
+    def mkEquals(self):
+        pos_start = self.pos.copy()
+        self.advance()
+        tokType = TT_EQ
+        
+        if self.currentChar == '=':
+            self.advance()
+            tokType = TT_EE   
             
+        return Token(tokType, pos_start=pos_start, pos_end=self.pos)     
+    
+    def mkGreaterThan(self):
+        pos_start = self.pos.copy()
+        self.advance()
+        tokType = TT_GT
+        
+        if self.currentChar == '=':
+            self.advance()
+            tokType = TT_GTE   
+            
+        return Token(tokType, pos_start=pos_start, pos_end=self.pos)    
+    
+    def mkLessThan(self):
+        pos_start = self.pos.copy()
+        self.advance()
+        tokType = TT_LT
+        
+        if self.currentChar == '=':
+            self.advance()
+            tokType = TT_LTE 
+            
+        return Token(tokType, pos_start=pos_start, pos_end=self.pos)    
