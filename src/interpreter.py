@@ -29,7 +29,12 @@ KEYWORDS = [
     'yehai',
     'aur',
     'ya',
-    'na'
+    'na',
+    'agar',
+    'phir',
+    'nahito',
+    'nahito_agar',
+    'jabtak'
 ]
 
 class Interpreter:
@@ -108,6 +113,40 @@ class Interpreter:
 			return res.failure(error)
 		else:
 			return res.success(result.set_pos(node.pos_start, node.pos_end))
+
+	def visit_IfNode(self, node, context):
+		res = RTResult()
+
+		for condition, expr in node.cases:
+			condition_value = res.register(self.visit(condition, context))
+			if res.error: return res
+
+			if condition_value.is_true():
+				expr_value = res.register(self.visit(expr, context))
+				if res.error: return res
+				return res.success(expr_value)
+
+
+		if node.else_case:
+			else_value = res.register(self.visit(node.else_case, context))
+			if res.error: return res
+			return res.success(else_value)
+
+		return res.success(None)
+
+	def visit_WhileNode(self, node, context):
+		res = RTResult()
+
+		while True:
+			condition = res.register(self.visit(node.condition_node, context))
+			if res.error: return res
+
+			if not condition.is_true(): break
+
+			res.register(self.visit(node.body_node, context))
+			if res.error: return res
+
+		return res.success(None)
 
 	def visit_UnaryOpNode(self, node, context):
 		res = RTResult()

@@ -2,7 +2,7 @@ import src
 
 
 globalSymbolTable = src.SymbolTable()
-globalSymbolTable.set("null", src.Number(0))
+globalSymbolTable.set("null", src.Number(0)) 
 globalSymbolTable.set("sach", src.Number(1))
 globalSymbolTable.set("jhut", src.Number(0))
 
@@ -28,6 +28,8 @@ def run():
     if result.error:
         print(result.error.asStr())
         return
+    if result.value == None:
+        return 
     print(result.value)
 
     

@@ -31,7 +31,12 @@ KEYWORDS = [
     'yehai',
     'aur',
     'ya',
-    'na'
+    'na',
+    'agar',
+    'phir',
+    'nahito',
+    'nahito_agar',
+    'jabtak'
 ]
 
 class Lexer:

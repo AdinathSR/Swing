@@ -1,3 +1,4 @@
+from distutils.log import error
 from .errors import *
 import string
 from .tokens import Token
@@ -28,7 +29,12 @@ KEYWORDS = [
     'yehai',
     'aur',
     'ya',
-    'na'
+    'na',
+    'agar',
+    'phir',
+    'nahito',
+    'nahito_agar',
+    'jabtak'
 ]
 
 class Number:
@@ -110,6 +116,10 @@ class Number:
 		copy.set_context(self.context)
 		return copy
 
+	def is_true(self):
+		return self.value != 0
+ 
+
 	def __repr__(self):
 		return str(self.value)
 
@@ -161,6 +171,22 @@ class UnaryOpNode:
 	def __repr__(self):
 		return f'({self.op_tok}, {self.node})'
 
+class IfNode():
+    def __init__(self, cases, else_case):
+        self.cases = cases
+        self.else_case = else_case
+        
+        self.pos = self.cases[0][0].pos_start
+        self.pos_end = (self.else_case or self.cases[len(self.cases)-1][0]).pos_end
+
+class WhileNode:
+	def __init__(self, condition_node, body_node):
+		self.condition_node = condition_node
+		self.body_node = body_node
+
+		self.pos_start = self.condition_node.pos_start
+		self.pos_end = self.body_node.pos_end
+
 #######################################
 # PARSE RESULT
 #######################################
@@ -211,6 +237,89 @@ class Parser:
 		return res
 
 	###################################
+ 
+	def if_expr(self):
+		res = ParseResult()
+		cases = []
+		else_case = None
+
+		if not self.current_tok.matches(TT_KEYWORD, 'agar'):
+			return res.failure(InvalidSyntaxError(
+				self.current_tok.pos_start, self.current_tok.pos_end,
+				f"Expected 'IF'"
+			))
+
+		res.register(self.advance())
+
+
+		condition = res.register(self.expr())
+		if res.error: return res
+
+		if not self.current_tok.matches(TT_KEYWORD, 'phir'):
+			return res.failure(InvalidSyntaxError(
+				self.current_tok.pos_start, self.current_tok.pos_end,
+				f"Expected 'THEN'"
+			))
+
+		res.register(self.advance())
+
+		expr = res.register(self.expr())
+		if res.error: return res
+		cases.append((condition, expr))
+
+		while self.current_tok.matches(TT_KEYWORD, 'nahito_agar'):
+			res.register(self.advance())
+
+			condition = res.register(self.expr())
+			if res.error: return res
+
+			if not self.current_tok.matches(TT_KEYWORD, 'phir'):
+				return res.failure(InvalidSyntaxError(
+					self.current_tok.pos_start, self.current_tok.pos_end,
+					f"Expected 'THEN'"
+				))
+
+			res.register(self.advance())
+
+			expr = res.register(self.expr())
+			if res.error: return res
+			cases.append((condition, expr))
+
+		if self.current_tok.matches(TT_KEYWORD, 'nahito'):
+			res.register(self.advance())
+
+			else_case = res.register(self.expr())
+			if res.error: return res
+
+		return res.success(IfNode(cases, else_case))
+
+	def while_expr(self):
+		res = ParseResult()
+
+		if not self.current_tok.matches(TT_KEYWORD, 'jabtak'):
+			return res.failure(InvalidSyntaxError(
+				self.current_tok.pos_start, self.current_tok.pos_end,
+				f"Expected 'jabtak'"
+			))
+
+		res.register(self.advance())
+
+
+		condition = res.register(self.expr())
+		if res.error: return res
+
+		if not self.current_tok.matches(TT_KEYWORD, 'phir'):
+			return res.failure(InvalidSyntaxError(
+				self.current_tok.pos_start, self.current_tok.pos_end,
+				f"Expected 'phir'"
+			))
+
+		res.register(self.advance())
+
+		body = res.register(self.expr())
+		if res.error: return res
+
+		return res.success(WhileNode(condition, body))
 
 	def factor(self):
 		res = ParseResult()
@@ -225,6 +334,7 @@ class Parser:
 		elif tok.type == TT_IDENTIFIER:
 			res.register(self.advance())
 			return res.success(VarAccessNode(tok))
+
 		
 		elif tok.type in (TT_INT, TT_FLOAT):
 			res.register(self.advance())
@@ -242,6 +352,15 @@ class Parser:
 					self.current_tok.pos_start, self.current_tok.pos_end,
 					"Expected ')'"
 				))
+		elif tok.matches(TT_KEYWORD, 'agar'):
+			if_expr = res.register(self.if_expr())
+			if res.error:return error
+			return res.success(if_expr)
+
+		elif tok.matches(TT_KEYWORD, 'jabtak'):
+			while_expr = res.register(self.while_expr())
+			if res.error: return res
+			return res.success(while_expr)
 
 		return res.failure(InvalidSyntaxError(
 			tok.pos_start, tok.pos_end,

@@ -4,9 +4,11 @@ class Error:
     def __init__(self, name, details, pos, pos2 ):
         self.name = name
         self.details = details
+        self.pos = pos
+        self.pos2 = pos2
     
     def asStr(self):
-        return f'{self.name}: {self.details}'
+        return f'{self.name}: {self.details}, position {self.pos}{self.pos2}'
     
 class IllegalCharError(Error):
     def __init__(self,details,pos, pos2):
